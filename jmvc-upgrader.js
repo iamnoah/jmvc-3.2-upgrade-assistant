@@ -38,6 +38,10 @@ var WHITELIST = {
 	resources: true,
 	views: true
 };
+var CHANGED = {
+	'jquery/lang': 'jquery/lang/string',
+	'jquery/lang/deparam': 'jquery/lang/string/deparam'
+};
 var LOG = false;
 
 var log = (typeof console !== "undefined") && console.log || print;
@@ -130,6 +134,7 @@ function fixPath(arg,prefix,suffix) {
 	if(suffix && !hasExt.test(value)) {
 		value = Fmt('{0}{1}',value,suffix);
 	}
+	value = CHANGED[value] || value;
 	return value;
 }
 
