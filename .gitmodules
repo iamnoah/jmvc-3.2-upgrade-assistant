@@ -1,0 +1,3 @@
+[submodule "jsshaper"]
+	path = jsshaper
+	url = https://github.com/olov/jsshaper.git
