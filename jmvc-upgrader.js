@@ -10,6 +10,12 @@ define(['./jsshaper/src/shaper', './jsshaper/src/tkn','./jsshaper/src/ref','./js
 var VIEW = 'mustache'; // TODO configure
 var VIEW_STEAL = 'mustache';
 
+var EXACT_SUFFIX = {
+	coffee: true,
+	css: true,
+	less: true,
+	resources: true
+};
 var PREFIXES = {
 	coffee: '.',
 	controllers: './controllers',
@@ -106,17 +112,22 @@ function convertDot(/*a steal. call*/node,ref,ctx) {
 		dot.children[0] = Shaper.replace(Fmt('$("{0}")',VIEW_STEAL), target);
 		dot.children[1] = Shaper.parse('then');
 		// XXX fix the args
-		return Fmt("(VIEW).then({0})",printArgs(argList,prefix,suffix));
+		return Fmt("(VIEW).then({0})",printArgs(argList,prefix,suffix,false));
 	}
 	node.children[0] = target;
 	// if it's the first call on steal, don't add a newline
 	if(target.type !== tkn.IDENTIFIER || target.value !== 'steal') {
 		node.srcs.splice(1, 0, '\n\t');
 	}
-	return "("+printArgs(argList,prefix,suffix)+")";
+	return "("+printArgs(argList,prefix,suffix,method in EXACT_SUFFIX)+")";
 }
 
-function findSteal(node) {
+function endsWith(value,suffix,exactSuffix) {
+	return (!exactSuffix && hasExt.test(value)) ||
+		value.substring(value.length - suffix.length) === suffix;
+}
+
+ function findSteal(node) {
 	if (Shaper.match(stealDotTmpl,node) || Shaper.match(stealTmpl,node)) {
 		return node;
 	} else if(node.type === tkn.DOT || node.type === tkn.CALL) {
@@ -124,24 +135,24 @@ function findSteal(node) {
 	}
 }
 
-function fixPath(arg,prefix,suffix) {
+function fixPath(arg,prefix,suffix,exactSuffix) {
 	var value = arg.value;
 	if(value.indexOf('//') === 0) {
 		value = value.substring(2);
 	} else if(prefix) {
 		value = Fmt('{0}/{1}',prefix,value);
 	}
-	if(suffix && !hasExt.test(value)) {
+	if(suffix && !endsWith(value,suffix,exactSuffix)) {
 		value = Fmt('{0}{1}',value,suffix);
 	}
 	value = CHANGED[value] || value;
 	return value;
 }
 
-function printArgs(listNode,prefix,suffix) {
+function printArgs(listNode,prefix,suffix,exactSuffix) {
 	return listNode.children.map(function(arg,i) {
 		if(arg.type === tkn.STRING) {
-			var newValue = Fmt('"{0}"',fixPath(arg,prefix,suffix));
+			var newValue = Fmt('"{0}"',fixPath(arg,prefix,suffix,exactSuffix));
 			listNode.children[i] = Shaper.parse(newValue);
 			return prefix === false ? arg.value : newValue;
 		} else if(arg.type === tkn.FUNCTION) {
